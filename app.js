@@ -61,7 +61,7 @@ const saveDetailsAndRedirect = function(req) {
 
 const findHandler = (req) => {
   if(req.method === 'GET' && req.url === '/') return serveHomePage;
-  if(req.method === 'POST' && req.url === '/saveName') return saveDetailsAndRedirect;
+  if(req.method === 'POST' && req.url === '/login') return saveDetailsAndRedirect;
   if(req.method === 'GET') return serveStaticFile;
   return () => new Response();
 }
