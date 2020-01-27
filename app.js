@@ -1,6 +1,7 @@
 const fs = require('fs');
 const Response = require('./lib/response');
 const CONTENT_TYPES = require('./lib/mimeTypes');
+const {loadTemplate} = require('./lib/viewTemplate');
 const STATIC_FOLDER = `${__dirname}/public`;
 
 const serveStaticFile = (req, optionalUrl) => {
@@ -18,12 +19,49 @@ const serveStaticFile = (req, optionalUrl) => {
   return res;
 }
 
+const loadSessions = function() {
+  const path = `./data/sessions.json`;
+  if(!fs.existsSync(path)) return [];
+  return JSON.parse(fs.readFileSync(path, 'utf8'));
+}
+
 const serveHomePage = function(req) {
-  return serveStaticFile(req, '/home.html');
+  const cookie = req.headers.Cookie || '';
+  if(!cookie.includes('session-id')) return serveStaticFile(req, '/index.html');
+  const sessions = loadSessions();
+  const user = sessions.find(user => user.sessionId == cookie.split('=')[1]);
+  if(user == undefined) return serveStaticFile(req, '/index.html');
+  const html = loadTemplate('home.html', user);
+  const res = new Response();
+  res.setHeader('Content-Type', CONTENT_TYPES.html);
+  res.setHeader('Set-Cookie', cookie);
+  res.setHeader('Content-Length', html.length);
+  res.statusCode = 200;
+  res.body = html;
+  return res;
 };
+
+const redirectTo = function(location, sessionId) {
+  const res = new Response();
+  res.setHeader('Location', location);
+  res.setHeader('Content-Length', 0);
+  res.setHeader('Set-Cookie', `session-id=${sessionId}`);
+  res.statusCode = 301;
+  return res;
+}
+
+const saveDetailsAndRedirect = function(req) {
+  const {name} = req.body;
+  const sessions = loadSessions();
+  const sessionId = new Date().getTime();
+  sessions.push({sessionId, name});
+  fs.writeFileSync(`./data/sessions.json`, JSON.stringify(sessions), 'utf8');
+  return redirectTo('/', sessionId);
+}
 
 const findHandler = (req) => {
   if(req.method === 'GET' && req.url === '/') return serveHomePage;
+  if(req.method === 'POST' && req.url === '/saveName') return saveDetailsAndRedirect;
   if(req.method === 'GET') return serveStaticFile;
   return () => new Response();
 }
