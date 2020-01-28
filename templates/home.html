@@ -6,15 +6,47 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>User Registered!!</title>
   <link rel="stylesheet" href="css/index.css">
+  <script>
+    const sendHttpGet = function(url, callback) {
+      const req = new XMLHttpRequest();
+      req.onload = function() {
+        if(this.status == 200) callback(this.responseText);
+      }
+      req.open('GET', url);
+      req.send();
+    };
+
+    const loadMessages = function() {
+      sendHttpGet('conversation',(text) => {
+        const conversation = JSON.parse(text);
+        const username = document.querySelector('#username').innerText;
+        const conversationHtml = conversation.reduce((html, messageDetail) => {
+          let styleName = 'others';
+          if(username == messageDetail.name) styleName = 'mine';
+          const message = `<div class="${styleName}"><div class="mess">
+            <span class="user">${messageDetail.name}</span></br>
+            ${messageDetail.message}
+            </div></div></br>`;
+          return html + message;
+        },'');
+        document.querySelector('#messages').innerHTML = conversationHtml;
+      });
+    };
+    const setup = function() {
+      const messageBox = document.querySelector('#messages');
+      messageBox.scrollTop = messageBox.scrollHeight;
+      loadMessages();
+    };
+  </script>
 </head>
-<body>
-  <h1 class="header">Welcome __name__</h1>
+<body onload="setInterval(setup,200)">
+  <h1 class="header">Welcome <span id="username">__name__</span></h1>
   <div class="conversation">
-    <div class="messages">__messages__</div>
+    <div id="messages"></div>
     <form action="sendMessage" method="POST">
       <div class="inputSpace">
         <input class="messageBox" type="text" name="message">
-        <button class="send" formaction="sendMessage">Send</button>
+        <button class="send">Send</button>
       </div>
     </form>
   </div>

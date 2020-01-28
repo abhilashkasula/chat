@@ -31,14 +31,7 @@ const serveHomePage = function(req) {
   const sessions = loadSessions();
   const {name, sessionId} = sessions.find(user => user.sessionId == cookie.split('=')[1]);
   if(sessionId == undefined) return serveStaticFile(req, '/index.html');
-  const conversationHtml = conversation.reduce((html, messageDetail) => {
-    const message = `<div class="mess">
-      <span class="user">${messageDetail.name}</span></br>
-      ${messageDetail.message}
-    </div></br>`;
-    return message + html;
-  },'');
-  const html = loadTemplate('home.html', {name, messages:conversationHtml});
+  const html = loadTemplate('home.html', {name});
   const res = new Response();
   res.setHeader('Content-Type', CONTENT_TYPES.html);
   res.setHeader('Set-Cookie', cookie);
@@ -51,7 +44,6 @@ const serveHomePage = function(req) {
 const redirectTo = function(location, sessionId) {
   const res = new Response();
   res.setHeader('Location', location);
-  res.setHeader('Content-Length', 0);
   res.setHeader('Set-Cookie', `session-id=${sessionId}`);
   res.statusCode = 301;
   return res;
@@ -77,14 +69,24 @@ const saveMessageAndRedirect = function(req) {
   const message = req.body.message;
   const {name, sessionId} = user;
   conversation.push({name, message});
-  console.log(conversation);
   return redirectTo('/', sessionId);
 };
+
+const serveConversations = function(req) {
+  const res = new Response();
+  const content = JSON.stringify(conversation);
+  res.setHeader('Content-Type', CONTENT_TYPES.json);
+  res.setHeader('Content-Length', content.length);
+  res.statusCode = 200;
+  res.body = content;
+  return res;
+}
 
 const findHandler = (req) => {
   if(req.method === 'GET' && req.url === '/') return serveHomePage;
   if(req.method === 'POST' && req.url === '/login') return serveConversationPage;
   if(req.method === 'POST' && req.url === '/sendMessage') return saveMessageAndRedirect;
+  if(req.method === 'GET' && req.url === '/conversation') return serveConversations;
   if(req.method === 'GET') return serveStaticFile;
   return () => new Response();
 }
