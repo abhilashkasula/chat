@@ -38,9 +38,17 @@ body {
 .messages {
   margin: 0;
   height: 460px;
+  overflow: scroll;
 }
 
-.input-container {
+.mess {
+  display: inline-block;
+  border: 1px solid rgba(30, 30, 30, 0.2);
+  margin-bottom: 10px;
+  border-radius: 10px 10px 0px 10px ;
+}
+
+.inputSpace {
   display: flex;
   justify-content: space-between;
   padding: 2px;

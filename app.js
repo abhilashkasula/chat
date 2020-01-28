@@ -29,9 +29,16 @@ const serveHomePage = function(req) {
   const cookie = req.headers.Cookie || '';
   if(!cookie.includes('session-id')) return serveStaticFile(req, '/index.html');
   const sessions = loadSessions();
-  const user = sessions.find(user => user.sessionId == cookie.split('=')[1]);
-  if(user == undefined) return serveStaticFile(req, '/index.html');
-  const html = loadTemplate('home.html', user);
+  const {name, sessionId} = sessions.find(user => user.sessionId == cookie.split('=')[1]);
+  if(sessionId == undefined) return serveStaticFile(req, '/index.html');
+  const conversationHtml = conversation.reduce((html, messageDetail) => {
+    const message = `<div class="mess">
+      <span class="user">${messageDetail.name}</span></br>
+      ${messageDetail.message}
+    </div></br>`;
+    return message + html;
+  },'');
+  const html = loadTemplate('home.html', {name, messages:conversationHtml});
   const res = new Response();
   res.setHeader('Content-Type', CONTENT_TYPES.html);
   res.setHeader('Set-Cookie', cookie);
@@ -50,7 +57,7 @@ const redirectTo = function(location, sessionId) {
   return res;
 }
 
-const saveDetailsAndRedirect = function(req) {
+const serveConversationPage = function(req) {
   const {name} = req.body;
   const sessions = loadSessions();
   const sessionId = new Date().getTime();
@@ -59,9 +66,25 @@ const saveDetailsAndRedirect = function(req) {
   return redirectTo('/', sessionId);
 }
 
+const conversation = [];
+
+const saveMessageAndRedirect = function(req) {
+  const cookie = req.headers.Cookie || '';
+  if(!cookie.includes('session-id')) return serveStaticFile(req, '/index.html');
+  const sessions = loadSessions();
+  const user = sessions.find(user => user.sessionId == cookie.split('=')[1]);
+  if(user == undefined) return serveStaticFile(req, '/index.html');
+  const message = req.body.message;
+  const {name, sessionId} = user;
+  conversation.push({name, message});
+  console.log(conversation);
+  return redirectTo('/', sessionId);
+};
+
 const findHandler = (req) => {
   if(req.method === 'GET' && req.url === '/') return serveHomePage;
-  if(req.method === 'POST' && req.url === '/login') return saveDetailsAndRedirect;
+  if(req.method === 'POST' && req.url === '/login') return serveConversationPage;
+  if(req.method === 'POST' && req.url === '/sendMessage') return saveMessageAndRedirect;
   if(req.method === 'GET') return serveStaticFile;
   return () => new Response();
 }
